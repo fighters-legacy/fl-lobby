@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # The binary is what operators self-host, and they do not all host on Linux. A lobby is
+        # pure stdlib, so cross-platform breakage would be a surprise -- which is exactly why it
+        # is worth one cheap job per platform rather than a claim.
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Verify formatting
+        if: runner.os == 'Linux'
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "These files are not gofmt-clean:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+
+      - name: Build
+        run: go build ./...
+
+      - name: Verify no external dependencies
+        if: runner.os == 'Linux'
+        # The one-static-binary promise in the README is only worth making if something checks it.
+        # A go.sum appearing, or a require block gaining entries, means a dependency slipped in.
+        run: |
+          if [ -f go.sum ]; then
+            echo "go.sum exists: fl-lobby is meant to be standard-library only."
+            exit 1
+          fi
+          if grep -qE '^\s*require' go.mod; then
+            echo "go.mod has a require block: fl-lobby is meant to be standard-library only."
+            exit 1
+          fi
+
+  reuse:
+    name: REUSE compliance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: fsfe/reuse-action@v6
+
+  smoke:
+    name: Loopback smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Register, list, deregister against a running binary
+        # The unit suite drives the handler in-process. This drives the real binary over a real
+        # socket, which is the half that would catch a wiring mistake in main.go -- a flag that
+        # never reaches the config, a listener that never starts.
+        run: ./scripts/smoke.sh

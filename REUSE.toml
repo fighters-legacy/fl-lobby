@@ -1,0 +1,21 @@
+version = 1
+
+# fl-lobby is a NETWORK SERVICE, so it is AGPLv3 rather than the GPLv3 the engine repo uses: AGPL
+# closes the run-over-a-network gap, which is the only way most people will ever "use" a lobby.
+# This sets the convention for every standalone Go companion service (fl-account, fl-review,
+# fl-director, fl-ops). GPLv3 stays for anything that links the engine.
+
+[[annotations]]
+path = "**.go"
+SPDX-FileCopyrightText = "2026 MKZ Systems LLC"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+[[annotations]]
+path = ["**.md", "**.toml", "**.yml", "**.yaml", "**.json", "**.mod", "**.sum"]
+SPDX-FileCopyrightText = "2026 MKZ Systems LLC"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+[[annotations]]
+path = [".gitignore", ".gitattributes", ".editorconfig", ".dockerignore", "Dockerfile", ".github/CODEOWNERS"]
+SPDX-FileCopyrightText = "2026 MKZ Systems LLC"
+SPDX-License-Identifier = "AGPL-3.0-or-later"

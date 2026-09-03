@@ -12,6 +12,14 @@ jobs:
   build:
     name: Build and test
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        # Every step in this job is a POSIX shell script, and the Windows runner would otherwise
+        # run them in PowerShell. That is not a style preference: PowerShell split
+        # `-coverprofile=coverage.txt` into two arguments and `go test` went looking for a package
+        # called `.txt`. One shell across all three platforms means a step that passes on Linux
+        # means something on Windows.
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
